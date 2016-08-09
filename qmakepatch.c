@@ -77,14 +77,16 @@ RetCode_t ReadImage(
 
 	hFile = fopen(pszFileName, "rb");
 	if (!hFile) {
-		fprintf(stderr, "Could not open file '%s' for reading.\n",
+		fprintf(stderr,
+			"Could not open file '%s' for reading.\n",
 			pszFileName);
 		perror(NULL);
 		return FileFailure;
 	} /* end if */
 
 	if (fseek(hFile, 0L, SEEK_END) != 0) {
-		fprintf(stderr, "Could not seek to the end of file '%s'.\n",
+		fprintf(stderr,
+			"Could not seek to the end of file '%s'.\n",
 			pszFileName);
 		perror(NULL);
 		return FileFailure;
@@ -92,10 +94,13 @@ RetCode_t ReadImage(
 
 	nBytesFile = ftell(hFile);
 	if (!nBytesFile) {
-		fprintf(stderr, "File '%s' is empty.\n", pszFileName);
+		fprintf(stderr,
+			"File '%s' is empty.\n",
+			pszFileName);
 		return FileFailure;
 	} else if (nBytesFile > (SIZE_MAX >> 1)) {
-		fprintf(stderr, "File '%s' has very large size of %li bytes.\n",
+		fprintf(stderr,
+			"File '%s' has very large size of %li bytes.\n",
 			pszFileName, nBytesFile);
 		return FileFailure;
 	} /* end if */
@@ -104,7 +109,8 @@ RetCode_t ReadImage(
 
 	poImageInfo->Data = malloc(nBytesData);
 	if (!poImageInfo->Data) {
-		fprintf(stderr, "Could not allocate %zu bytes"
+		fprintf(stderr,
+			"Could not allocate %zu bytes"
 			" to read the contents of file '%s'.\n",
 			nBytesData, pszFileName);
 		perror(NULL);
@@ -115,7 +121,8 @@ RetCode_t ReadImage(
 	if (fread(poImageInfo->Data, sizeof(char), nBytesData, hFile)
 			!= nBytesData
 	) {
-		fprintf(stderr, "Could not read %zu bytes of file '%s'.\n",
+		fprintf(stderr,
+			"Could not read %zu bytes of file '%s'.\n",
 			nBytesData, pszFileName);
 		perror(NULL);
 		return FileFailure;
@@ -137,7 +144,8 @@ RetCode_t WriteImage(
 
 	hFile = fopen(pszFileName, "wb");
 	if (!hFile) {
-		fprintf(stderr, "Could not open file '%s' for writing.\n",
+		fprintf(stderr,
+			"Could not open file '%s' for writing.\n",
 			pszFileName);
 		perror(NULL);
 		return FileFailure;
@@ -147,7 +155,8 @@ RetCode_t WriteImage(
 	if (fwrite(poImageInfo->Data, sizeof(char), poImageInfo->Size, hFile)
 			!= poImageInfo->Size
 	) {
-		fprintf(stderr, "Could not write %zu bytes to file '%s'.\n",
+		fprintf(stderr,
+			"Could not write %zu bytes to file '%s'.\n",
 			poImageInfo->Size, pszFileName);
 		perror(NULL);
 		return FileFailure;
@@ -156,7 +165,8 @@ RetCode_t WriteImage(
 	/* TODO: Is truncation necessary in the most general case? */
 
 	if (fclose(hFile) != 0) {
-		fprintf(stderr, "Could not close file '%s' after writing %zu bytes.\n",
+		fprintf(stderr,
+			"Could not close file '%s' after writing %zu bytes.\n",
 			poImageInfo->Size, pszFileName);
 		perror(NULL);
 		return FileFailure;
@@ -172,7 +182,7 @@ TODO: Is there any standard (optimized) function for that?
 */
 const void* FindNonZeroByte(
 	const void* pvBegin,
-	const void* pvEnd	/* Start of next block, like `std::vector::end()`. */
+	const void* pvEnd	/* Start of next block, not inclusive. */
 ) {
 	const char* pcCur;
 	pcCur = (const char*)pvBegin;
@@ -195,26 +205,36 @@ size_t RewriteField(
 	char* pcFoundEnd;
 	size_t nBytesReserved;
 
-	pcFoundEnd = memchr(pvFieldValueBeginning, '\0',
-		(const char*)pvDataEnd - (const char*)pvFieldValueBeginning);
+	pcFoundEnd = memchr(
+		pvFieldValueBeginning,
+		'\0',
+		(const char*)pvDataEnd - (const char*)pvFieldValueBeginning
+	);
 	if (!pcFoundEnd) {
-		fprintf(stderr, "Could not find the end of '%.*s' value in image.\n",
+		fprintf(stderr,
+			"Could not find the end of '%.*s' value in image.\n",
 			(int)nFieldNameBytes, pcFieldName);
 		return DataFailure;
 	} /* end if */
 
 	nBytesReserved = pcFoundEnd - (char*)pvFieldAreaBeginning;
 	if (nBytesReserved > FIELD_RESERVED_AREA_LIMIT) {
-		fprintf(stderr, "Determined size of '%.*s' value in image"
-			" is %zu bytes, which is beyond sanity limit of %zu bytes.\n",
+		fprintf(stderr,
+			"Determined size of '%.*s' value in image"
+			" is %zu bytes, which is beyond sanity limit"
+			" of %zu bytes.\n",
 			(int)nFieldNameBytes, pcFieldName,
 			nBytesReserved, FIELD_RESERVED_AREA_LIMIT);
 		return DataFailure;
 	} /* end if */
 
-	pcFoundEnd = (char*)FindNonZeroByte(pcFoundEnd + sizeof(char), pvDataEnd);
+	pcFoundEnd = (char*)FindNonZeroByte(
+		pcFoundEnd + sizeof(char),
+		pvDataEnd
+	);
 	if ((void*)pcFoundEnd >= pvDataEnd) {
-		fprintf(stderr, "Could not find the end of '%.*s'"
+		fprintf(stderr,
+			"Could not find the end of '%.*s'"
 			" reserved area in image.\n",
 			(int)nFieldNameBytes, pcFieldName);
 		return DataFailure;
@@ -222,24 +242,35 @@ size_t RewriteField(
 
 	nBytesReserved = pcFoundEnd - (char*)pvFieldAreaBeginning;
 	if (nBytesReserved > FIELD_RESERVED_AREA_LIMIT) {
-		fprintf(stderr, "Determined size of '%.*s' reserved area in image"
-			" is %zu bytes, which is beyond sanity limit of %zu bytes.\n",
+		fprintf(stderr,
+			"Determined size of '%.*s' reserved area in image"
+			" is %zu bytes, which is beyond sanity limit"
+			" of %zu bytes.\n",
 			(int)nFieldNameBytes, pcFieldName,
 			nBytesReserved, FIELD_RESERVED_AREA_LIMIT);
 		return DataFailure;
 	} /* end if */
 
 	if (nFieldReplacementBytes > nBytesReserved) {
-		fprintf(stderr, "Determined size of '%.*s' reserved area in image"
-			" is %zu bytes, while the new value requires %zu bytes.\n",
+		fprintf(stderr,
+			"Determined size of '%.*s' reserved area in image"
+			" is %zu bytes, while the new value requires"
+			" %zu bytes.\n",
 			(int)nFieldNameBytes, pcFieldName,
 			nBytesReserved, nFieldReplacementBytes);
 		return DataFailure;
 	} /* end if */
 
-	memcpy(pvFieldAreaBeginning, pvFieldReplacement, nFieldReplacementBytes);
-	memset((char*)pvFieldAreaBeginning + nFieldReplacementBytes, '\0',
-		nBytesReserved - nFieldReplacementBytes);
+	memcpy(
+		pvFieldAreaBeginning,
+		pvFieldReplacement,
+		nFieldReplacementBytes
+	);
+	memset(
+		(char*)pvFieldAreaBeginning + nFieldReplacementBytes,
+		'\0',
+		nBytesReserved - nFieldReplacementBytes
+	);
 
 	return Success;
 } /* end function RewriteField */
@@ -326,10 +357,12 @@ RetCode_t RewriteVersion(
 	if ((strncmp(pszVersion, "1", nBytesMajor) == 0) ||
 		(strncmp(pszVersion, "2", nBytesMajor) == 0)
 	) {
-		fprintf(stderr, "Qt versions 1.x and 2.x did not have QMake.\n");
+		fprintf(stderr,
+			"Qt versions 1.x and 2.x did not have QMake.\n");
 		return BadConfig;
 	} else if (strncmp(pszVersion, "3", nBytesMajor) == 0) {
-		return RewriteFieldWithBeacon(poImageInfo, "-version", pszVersion, TRUE);
+		return RewriteFieldWithBeacon(poImageInfo,
+			"-version", pszVersion, TRUE);
 	} else if (strncmp(pszVersion, "4", nBytesMajor) == 0) {
 		BOOL fDone_version;		/* '-version' */
 		BOOL fDone_QT_VERSION;		/* 'QT_VERSION' */
@@ -340,8 +373,9 @@ RetCode_t RewriteVersion(
 		if (fDone_version || fDone_QT_VERSION) {
 			return Success;
 		} else {
-			fprintf(stderr, "Could not update any of '-version' "
-				"or 'QT_VERSION'.\n");
+			fprintf(stderr,
+				"Could not update any of '-version'"
+				" or 'QT_VERSION'.\n");
 			return DataFailure;
 		} /* end if */
 	} else if (strncmp(pszVersion, "5", nBytesMajor) == 0) {
@@ -357,12 +391,15 @@ RetCode_t RewriteVersion(
 		if (fDone_version || fDone_QMAKE_VERSION || fDone_Qt) {
 			return Success;
 		} else {
-			fprintf(stderr, "Could not update any of '--version', "
-				"'QT_VERSION' ('QMAKE_VERSION') or ') (Qt '.\n");
+			fprintf(stderr,
+				"Could not update any of '--version',"
+				" 'QT_VERSION' ('QMAKE_VERSION')"
+				" or ') (Qt '.\n");
 			return DataFailure;
 		} /* end if */
 	} else {
-		fprintf(stderr, "Do not know how to rewrite version string"
+		fprintf(stderr,
+			"No idea on how to rewrite version string"
 			" for Qt major version '%.*s'.\n",
 			(int)nBytesMajor, pszVersion);
 		return BadConfig;
@@ -381,7 +418,9 @@ RetCode_t RewriteVariable(
 
 	pcFound = strchr(pszNameValuePair, '=');
 	if (!pcFound) {
-		fprintf(stderr, "No equals sign found in '%s'.\n", pszNameValuePair);
+		fprintf(stderr,
+			"No equals sign found in '%s'.\n",
+			pszNameValuePair);
 		return BadConfig;
 	} /* end if */
 
@@ -405,7 +444,8 @@ RetCode_t RewriteVariable(
 	} /* end if */
 
 	if (!pcFound) {
-		fprintf(stderr, "Could not find '%.*s' in image.\n",
+		fprintf(stderr,
+			"Could not find '%.*s' in image.\n",
 			(int)nBytesLeader, pszNameValuePair);
 		return DataFailure;
 	} /* end if */
@@ -449,7 +489,8 @@ RetCode_t PatchQmakeExe(
 	if (ordRetCode != Success) return ordRetCode;
 
 	for (ndxVarSpec = 0u; ndxVarSpec < nVarSpecs; ++ndxVarSpec) {
-		ordRetCode = RewriteVariable(&oImageInfo, apszVarSpecs[ndxVarSpec]);
+		ordRetCode = RewriteVariable(&oImageInfo,
+			apszVarSpecs[ndxVarSpec]);
 		if (ordRetCode != Success) return ordRetCode;
 	} /* end for */
 
@@ -485,6 +526,42 @@ const char* GetModuleName(
 } /* end function GetModuleName */
 
 
+void ShowHelp(
+	const char* pszModuleName
+) {
+
+	printf(
+"Patching utility for QMake executables\n"
+"\n"
+	);
+	printf(
+"Syntax:\n"
+"	%s {qmake.exe} {version} [name=value ...]\n",
+		pszModuleName
+	);
+	printf(
+"where\n"
+"	qmake.exe\n"
+"		Path to QMake executable file: 'qmake', '/bin/qmake-qt5'\n"
+"	version\n"
+"		Version string to be written.\n"
+"		Pass an empty argument to skip this patch.\n"
+"	name=value\n"
+"		Variable name and its new value to be written.\n"
+"		Ex.: qt_prfxpath=/opt/qt4\n"
+"		Note that Qt5 allows to patch just a few of them.\n"
+"\n"
+	);
+	printf(
+"Example:\n"
+"	%s ./qmake 4.8.4 qt_prfxpath=/opt/qt4 qt_libspath=/opt/qt4/lib\n",
+		pszModuleName
+	);
+
+	return /* void */;
+} /* end function ShowHelp */
+
+
 int main(
 	int argc,
 	const char** argv
@@ -512,28 +589,7 @@ int main(
 	} /* end if */
 
 	if (fShowHelp) {
-		const char* pszModuleName = GetModuleName(argc ? argv[0] : NULL);
-		printf("Patching utility for QMake executables\n");
-		printf("\n");
-		printf("Syntax:\n");
-		printf("	%s {qmake.exe} {version} [name=value ...]\n",
-			pszModuleName);
-		printf("where\n");
-		printf("	qmake.exe\n");
-		printf("		Path to QMake executable file: 'qmake', 'qmake-qt5'\n");
-		printf("	version\n");
-		printf("		Version string to be written.\n");
-		printf("		Pass an empty argument to skip this patch.\n");
-		printf("	name=value\n");
-		printf("		Variable name and its new value to be written.\n");
-		printf("		Ex.: qt_prfxpath=/opt/qt4\n");
-		printf("		Note that Qt5 allows to patch just a few of them.\n");
-		printf("\n");
-		printf("Example:\n");
-		printf("	%s ./qmake 4.8.4"
-			" qt_prfxpath=/opt/qt4 qt_libspath=/opt/qt4/lib\n",
-			pszModuleName);
-
+		ShowHelp(GetModuleName(argc ? argv[0] : NULL));
 		return ordRetCode;
 	} /* end if */
 
