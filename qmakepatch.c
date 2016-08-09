@@ -15,6 +15,7 @@ and Qt version string, without relying on external INI files.
 #endif
 
 #include <stddef.h>		/* For `size_t` only. */
+#include <ctype.h>
 #include <string.h>
 #include <malloc.h>
 #include <stdio.h>
@@ -27,6 +28,19 @@ and Qt version string, without relying on external INI files.
 
 #ifndef SIZE_MAX
 #	define SIZE_MAX SIZE_C(-1)
+#endif
+
+
+#ifndef BOOL
+#	define BOOL int
+#endif
+
+#ifndef TRUE
+#	define TRUE 1
+#endif
+
+#ifndef FALSE
+#	define FALSE 0
 #endif
 
 
@@ -234,28 +248,54 @@ size_t RewriteField(
 RetCode_t RewriteFieldWithBeacon(
 	ImageInfo_t* poImageInfo,
 	const char* pszBeacon,
-	const char* pszReplacement
+	const char* pszReplacement,
+	BOOL fVerbose
 ) {
 	size_t nBeaconChars;
 	size_t nBeaconBytes;
 	char* pcFoundBeginning;
+	char* pvDataBeginning;
+	size_t nDataBytes;
 
 	nBeaconChars = strlen(pszBeacon);
 	nBeaconBytes = nBeaconChars + sizeof(char);
 
-	pcFoundBeginning = (char*)memmem(
-		poImageInfo->Data,
-		poImageInfo->Size,
-		pszBeacon,
-		nBeaconBytes
-	);
-	if (!pcFoundBeginning) {
-		fprintf(stderr, "Could not find '%.*s' in image.\n",
+	pvDataBeginning = (char*)poImageInfo->Data;
+	nDataBytes = poImageInfo->Size;
+
+	while (nDataBytes) {
+
+		pcFoundBeginning = (char*)memmem(
+			pvDataBeginning,
+			nDataBytes,
+			pszBeacon,
+			nBeaconBytes
+		);
+
+		if (!pcFoundBeginning) {
+			if (fVerbose) fprintf(stderr,
+				"Could not find '%.*s' beacon in image.\n",
+				(int)nBeaconChars, pszBeacon);
+			return DataFailure;
+		} /* end if */
+
+		pcFoundBeginning += nBeaconBytes;
+
+		if (isprint(*pcFoundBeginning)) {
+			break;
+		} else {
+			nDataBytes -= (pcFoundBeginning - pvDataBeginning);
+			pvDataBeginning = pcFoundBeginning;
+		} /* end if */
+
+	} /* end while */
+
+	if (!nDataBytes) {
+		if (fVerbose) fprintf(stderr,
+			"Could not find '%.*s' beacon in image.\n",
 			(int)nBeaconChars, pszBeacon);
 		return DataFailure;
 	} /* end if */
-
-	pcFoundBeginning += nBeaconBytes;
 
 	return RewriteField(
 		pszBeacon,
@@ -289,11 +329,38 @@ RetCode_t RewriteVersion(
 		fprintf(stderr, "Qt versions 1.x and 2.x did not have QMake.\n");
 		return BadConfig;
 	} else if (strncmp(pszVersion, "3", nBytesMajor) == 0) {
-		return RewriteFieldWithBeacon(poImageInfo, "-version", pszVersion);
+		return RewriteFieldWithBeacon(poImageInfo, "-version", pszVersion, TRUE);
 	} else if (strncmp(pszVersion, "4", nBytesMajor) == 0) {
-		return RewriteFieldWithBeacon(poImageInfo, "QT_VERSION", pszVersion);
+		BOOL fDone_version;		/* '-version' */
+		BOOL fDone_QT_VERSION;		/* 'QT_VERSION' */
+		fDone_version = (RewriteFieldWithBeacon(poImageInfo,
+			"-version", pszVersion, FALSE) == Success);
+		fDone_QT_VERSION = (RewriteFieldWithBeacon(poImageInfo,
+			"QT_VERSION", pszVersion, FALSE) == Success);
+		if (fDone_version || fDone_QT_VERSION) {
+			return Success;
+		} else {
+			fprintf(stderr, "Could not update any of '-version' "
+				"or 'QT_VERSION'.\n");
+			return DataFailure;
+		} /* end if */
 	} else if (strncmp(pszVersion, "5", nBytesMajor) == 0) {
-		return RewriteFieldWithBeacon(poImageInfo, "--version", pszVersion);
+		BOOL fDone_version;		/* '--version' */
+		BOOL fDone_QMAKE_VERSION;	/* 'QMAKE_VERSION', sic! */
+		BOOL fDone_Qt;			/* ') (Qt ' */
+		fDone_version = (RewriteFieldWithBeacon(poImageInfo,
+			"--version", pszVersion, FALSE) == Success);
+		fDone_QMAKE_VERSION = (RewriteFieldWithBeacon(poImageInfo,
+			"QMAKE_VERSION", pszVersion, FALSE) == Success);
+		fDone_Qt = (RewriteFieldWithBeacon(poImageInfo,
+			") (Qt ", pszVersion, FALSE) == Success);
+		if (fDone_version || fDone_QMAKE_VERSION || fDone_Qt) {
+			return Success;
+		} else {
+			fprintf(stderr, "Could not update any of '--version', "
+				"'QT_VERSION' ('QMAKE_VERSION') or ') (Qt '.\n");
+			return DataFailure;
+		} /* end if */
 	} else {
 		fprintf(stderr, "Do not know how to rewrite version string"
 			" for Qt major version '%.*s'.\n",
