@@ -52,6 +52,17 @@ and disallows automated processing.
 
 * Minimum to none error checking.
 
+*Packaging tools* from the official
+[Qt SDK](https://github.com/qtproject/qtsdk/),
+particularly `patch_qmake_qt_key.py` script,
+may be noted for its simplicity and straight-through approach:
+
+* Implemented as Python script to be invoked manually or in batch.
+
+* Rewrites only a single variable at once.
+
+* Does not rewrite version string.
+
 In contrast to that, *QmakePatch* was developed with the following goals
 in mind:
 
