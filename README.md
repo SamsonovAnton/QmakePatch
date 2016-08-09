@@ -165,7 +165,7 @@ Changing the settings file location in Qmake 1.x (Qt 3.x):
 	qmakepatch ./qmake "" qt_cnfpath=/etc/qt-3.3.3
 ````
 
-Changing the settings file location and installation date in Qmake 2.x (Qt 4.x):
+Changing the settings file location and installation date in QMake 2.x (Qt 4.x):
 
 ````sh
 	qmakepatch ./qmake "" qt_stngpath=/etc/qt-4.8.4 qt_instdate=2016-06-28
@@ -228,13 +228,13 @@ Qmake 1.x, available as a part of Qt 3.x, typically has the following varia
 To the left are well-known names, in upper case, which can be referenced
 in project and spec files as `$$[QT_INSTALL_PREFIX]` and queried from command
 line as `qmake -query QT_INSTALL_PREFIX`; variables marked as anonymous
-are only used internally by QMake and cannot be queried.
+are only used internally by Qmake and cannot be queried.
 To the right are internal names, in lower case, with their sample values.
 Alternatively, an expression like `${QT_INSTALL_DATA}/mkspecs` denotes
 a value computed at run time from another variable plus some hardcoded suffix,
 and thus not customizable.
 
-Qmake 2.x, available as a part of Qt 4.x, typically has the following variables:
+QMake 2.x, available as a part of Qt 4.x, typically has the following variables:
 
 ````
 	[anonymous]                qt_lcnsuser=Open Source
@@ -255,7 +255,7 @@ Qmake 2.x, available as a part of Qt 4.x, typically has the following varia
 	QMAKE_MKSPECS:             ${QT_INSTALL_DATA}/mkspecs
 ````
 
-Qmake 3.x, available as a part of Qt 5.x, typically has the following variables:
+QMake 3.x, available as a part of Qt 5.x, typically has the following variables:
 
 ````
 	QT_INSTALL_PREFIX:         qt_prfxpath=/usr
@@ -284,7 +284,7 @@ Qmake 3.x, available as a part of Qt 5.x, typically has the following varia
 	QT_HOST_LIBS:              ${QT_HOST_PREFIX}/usr/lib
 ````
 
-As can be seen, Qmake 3.x provides almost two dozens of variables, but only few
+As can be seen, QMake 3.x provides almost two dozens of variables, but only few
 of them can be customized by patching the executable file.
 Particularly, `QT_SYSROOT` and `QT_INSTALL_CONFIGURATION`, although
 not being dependent of other variables, are not easy to search and replace
